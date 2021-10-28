@@ -1,0 +1,7 @@
+selenium==3.141.0
+pymongo[srv]==3.11.4
+python-decouple==3.4
+ordered-set==4.0.2
+pandas==1.2.4
+uuid==1.30
+twint==2.1.21
