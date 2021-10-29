@@ -47,6 +47,9 @@ db = client.twitter_topics
 
 
 def open_browser(topic_url):
+    """
+        This starts the chrome browser and opens the url
+    """
     ## windows
     PATH = 'C://Users/hp/Desktop/Chrome Driver/chromedriver.exe'
 
@@ -62,6 +65,9 @@ def open_browser(topic_url):
 
 
 def get_topic_and_sub_topic(driver):
+    """
+        This inpects the title of the topic section
+    """
     class_path_text = "[class='css-1dbjc4n r-1ydw1k6 r-usiww2']"
     topic_section = driver.find_elements_by_css_selector(class_path_text)
     sleep(4)
@@ -76,6 +82,9 @@ def get_topic_and_sub_topic(driver):
 
 
 def scroll_down_twitter(driver):
+    """
+        This implements an infinite scroll on twitter and stops at the end of the page
+    """
     # Get scroll height
     last_height = driver.execute_script("return document.body.scrollHeight")
 
@@ -107,7 +116,9 @@ def scroll_down_twitter(driver):
 
 
 def format_tweet_data(tweet_urls):
-    
+    """
+        This splits a list of list into a single ordered list 
+    """
     tweet_urls = [a for b in tweet_urls for a in b]
     tweet_urls = list(OrderedSet(tweet_urls))
     return  tweet_urls
@@ -118,7 +129,9 @@ def twint_to_pandas(columns):
 
 
 def get_latest_tweets_from_handle(username, num_tweets, date):
-
+    """
+        This uses twint to get all the tweets made by the username/handle
+    """
     c = twint.Config()
     c.Username = username
     c.Limit = num_tweets
@@ -229,6 +242,9 @@ def process_tweet_urls(tweet_urls, topic):
 
 
 def get_record_details(search_dict, collection, find_one=True):
+    """
+        This searches through mongodb for a single record
+    """
     try:
         query = collection.find_one(search_dict) if find_one else collection.find(search_dict)
         return query
@@ -238,12 +254,18 @@ def get_record_details(search_dict, collection, find_one=True):
 
 
 def insert_records(collection, record):
+    """
+        This inserts a single record to mongo db
+    """
     try:
         collection.insert_one(record)
     except Exception as e:
         print(e)
 
 def save_to_mongo_db(data, collection):
+    """
+        This saves the record to mongo db
+    """
     insert_records(collection, data)
     cur = collection.count_documents({})
     print(f"we have {cur} entries")
@@ -252,6 +274,9 @@ def save_to_mongo_db(data, collection):
 
 
 def process_tweet_urls_v2(tweet_urls, topic):
+    """
+        This takes a tweet url and processes it to get the tweets 
+    """
         
     collection = db[topic]
     
@@ -335,6 +360,9 @@ def process_content_dict(tweet_df, topic):
 
 
 def notify_slack(data, topic):
+    """
+        This sends the content_dict/ data to a slack channel
+    """
 
     url =  SLACK_WEBHOOK
     
