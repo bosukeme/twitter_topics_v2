@@ -4,4 +4,5 @@ python-decouple==3.4
 ordered-set==4.0.2
 pandas==1.2.4
 uuid==1.30
-twint==2.1.21
+twint
+textblob==0.17.1

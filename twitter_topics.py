@@ -14,18 +14,23 @@ options.add_argument('--headless')
 options.add_experimental_option('excludeSwitches', ['enable-logging'])
 
 
+from Config.settings import MONGO_URL, SLACK_WEBHOOK
+
+import sys
+import requests
+import json
 from ordered_set import OrderedSet
 import pandas as pd
 from pymongo import MongoClient
 import uuid
-import re, os, json
+import re, os
 
 from datetime import datetime, timedelta
 import twint
+from textblob import TextBlob
 import nest_asyncio
 nest_asyncio.apply()
 
-from Config.settings import MONGO_URL
 
 BASE_DIR = os.getcwd()
 
@@ -46,7 +51,7 @@ def open_browser(topic_url):
     PATH = 'C://Users/hp/Desktop/Chrome Driver/chromedriver.exe'
 
     ## linux
-    # PATH = "'/usr/lib/chromium-browser/chromedriver'"
+    # PATH = "/usr/lib/chromium-browser/chromedriver"
 
     driver = webdriver.Chrome(PATH, options=options)
 
@@ -194,7 +199,8 @@ def process_tweet_urls(tweet_urls, topic):
             
             if len(tweet.split()) - len(cleaned_tweet_text.split()) < 7:
 
-                language = main_dict['language']
+                language = TextBlob(tweet)
+                language = language.detect_language()
                 if language == "en":
 
                     tweet_dict = {
@@ -299,7 +305,8 @@ def process_content_dict(tweet_df, topic):
 
         if len(tweet.split()) - len(cleaned_tweet_text.split()) < 7:
 
-            language = item['language']
+            language = TextBlob(tweet)
+            language = language.detect_language()
             if language == "en":
 
                 tweet_dict = {
@@ -322,6 +329,42 @@ def process_content_dict(tweet_df, topic):
                 
                 print(content_details_dict)
                 save_to_mongo_db(content_details_dict, collection)
+                notify_slack(content_details_dict, topic)
+
+
+
+
+def notify_slack(data, topic):
+
+    url =  SLACK_WEBHOOK
+    
+    message = (f'{data}')
+    title = (f"New Incoming Message : {topic} :zap:")
+    
+    slack_data = {
+        "username": f'{topic}',
+        "attachments": [
+            {
+                "color":  "#9733EE",
+                "fields": [
+                    {
+                        "title": title,
+                        "value": message,
+                        "short": "false",
+                    }
+                ]
+            }
+        ]
+    }
+    byte_length = str(sys.getsizeof(slack_data))
+    headers = {'Content-Type': "application/json", 'Content-Length': byte_length}
+    response = requests.post(url, data=json.dumps(slack_data), headers=headers)
+    if response.status_code != 200:
+        raise Exception(response.status_code, response.text)
+        
+    return None
+
+
 
 
 
