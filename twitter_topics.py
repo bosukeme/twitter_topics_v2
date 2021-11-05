@@ -10,7 +10,7 @@ options=Options()
 options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
 options.add_argument('--disable-gpu')
-options.add_argument('--headless')
+# options.add_argument('--headless')
 options.add_experimental_option('excludeSwitches', ['enable-logging'])
 
 
@@ -56,11 +56,14 @@ def open_browser(topic_url):
     ## linux
     # PATH = "/usr/lib/chromium-browser/chromedriver"
 
-    driver = webdriver.Chrome(PATH, options=options)
+    try:
+        driver = webdriver.Chrome(PATH, options=options)
 
-    driver.get(topic_url)
-    sleep(5)
-    
+        driver.get(topic_url)
+        sleep(5)
+    except Exception as e:
+        print(e)
+
     return driver
 
 
@@ -68,14 +71,17 @@ def get_topic_and_sub_topic(driver):
     """
         This inpects the title of the topic section
     """
-    class_path_text = "[class='css-1dbjc4n r-1ydw1k6 r-usiww2']"
-    topic_section = driver.find_elements_by_css_selector(class_path_text)
-    sleep(4)
-    topic_section = topic_section[0].text
-    section_split = topic_section.split("\n")
-    
-    topic = section_split[0]
-    sub_topic = section_split[1]
+    try:
+        class_path_text = "[class='css-1dbjc4n r-1ydw1k6 r-usiww2']"
+        topic_section = driver.find_elements_by_css_selector(class_path_text)
+        sleep(4)
+        topic_section = topic_section[0].text
+        section_split = topic_section.split("\n")
+        
+        topic = section_split[0]
+        sub_topic = section_split[1]
+    except Exception as e:
+        print(e)
 
     return topic
 
@@ -86,32 +92,36 @@ def scroll_down_twitter(driver):
         This implements an infinite scroll on twitter and stops at the end of the page
     """
     # Get scroll height
-    last_height = driver.execute_script("return document.body.scrollHeight")
 
-    new_height = 10
+    try:
+        last_height = driver.execute_script("return document.body.scrollHeight")
 
-    tweet_urls = []
-    
-    while True:
+        new_height = 10
 
-        driver.execute_script(f"window.scrollTo(0, {new_height});")
-        sleep(5)
+        tweet_urls = []
         
-        tag_sections = driver.find_elements_by_tag_name("a")
+        while True:
 
-        tags = [item.get_attribute('href') for item in tag_sections]
-        ids = [item for item in tags if "status" in item and "photo" not in item]
-        sleep(3)
-        
-        tweet_urls.append(ids)
-        
-
-        # Calculate new scroll height and compare with last scroll height
-        new_height = driver.execute_script(f"return {new_height+1000}")
-        print(new_height)
-        if new_height > last_height:
-            break
+            driver.execute_script(f"window.scrollTo(0, {new_height});")
+            sleep(5)
             
+            tag_sections = driver.find_elements_by_tag_name("a")
+
+            tags = [item.get_attribute('href') for item in tag_sections]
+            ids = [item for item in tags if "status" in item and "photo" not in item]
+            sleep(3)
+            
+            tweet_urls.append(ids)
+            
+
+            # Calculate new scroll height and compare with last scroll height
+            new_height = driver.execute_script(f"return {new_height+1000}")
+            print(new_height)
+            if new_height > last_height:
+                break
+    except Exception as e:
+        print(e)
+        
     return tweet_urls
 
 
@@ -119,9 +129,13 @@ def format_tweet_data(tweet_urls):
     """
         This splits a list of list into a single ordered list 
     """
-    tweet_urls = [a for b in tweet_urls for a in b]
-    tweet_urls = list(OrderedSet(tweet_urls))
+    try:
+        tweet_urls = [a for b in tweet_urls for a in b]
+        tweet_urls = list(OrderedSet(tweet_urls))
+    except Exception as e:
+        print(e)
     return  tweet_urls
+
 
 
 def twint_to_pandas(columns):
@@ -156,10 +170,12 @@ def get_tweet_id_and_handle_from_url(tweet_url):
     """
     This function takes a tweet_url and then returns the tweet ID and tweet handle
     """
-    split_list = tweet_url.split('/')
-    twitter_handle = split_list[3]
-    tweet_id = split_list[5]
-    
+    try:
+        split_list = tweet_url.split('/')
+        twitter_handle = split_list[3]
+        tweet_id = split_list[5]
+    except Exception as e:
+        print(e)
     return tweet_id, twitter_handle
 
 
@@ -167,17 +183,19 @@ def cleanup_tweet(tweet, twitter_handle, num_reply=0):
     """
     This function takes in a tweet and then cleans it up by removing non alphanumericals etc
     """
-    tweet_tokens = tweet.split()[num_reply:] # we ignore the first token which will always be the handle
-    text_list = []
-    for token in tweet_tokens:
-        temp = ''.join([i for i in token if (i.isalpha() or (i in ['.',',', '..', '…', ':', ';', '?', '"', '-']) or i.isdigit())])        
-        if '#' not in temp:
-            if twitter_handle not in temp:
-                text_list.append(temp.strip())
+    try:
+        tweet_tokens = tweet.split()[num_reply:] # we ignore the first token which will always be the handle
+        text_list = []
+        for token in tweet_tokens:
+            temp = ''.join([i for i in token if (i.isalpha() or (i in ['.',',', '..', '…', ':', ';', '?', '"', '-']) or i.isdigit())])        
+            if '#' not in temp:
+                if twitter_handle not in temp:
+                    text_list.append(temp.strip())
 
-    tweet_text = ' '.join(text_list)
-    tweet_text = re.sub(r"http\S+", "", tweet_text)
-
+        tweet_text = ' '.join(text_list)
+        tweet_text = re.sub(r"http\S+", "", tweet_text)
+    except Exception as e:
+        print(e)
     return tweet_text
 
 
@@ -277,85 +295,89 @@ def process_tweet_urls_v2(tweet_urls, topic):
     """
         This takes a tweet url and processes it to get the tweets 
     """
+    try:
+        collection = db[topic]
         
-    collection = db[topic]
-    
-    tweet_df_list = []
-    for tweet_url in tweet_urls[:15]:
-        
-        search_dict = {'tweet_url': tweet_url}
-
-        query  = get_record_details(search_dict, collection, find_one=True)
-        
-        if query == None:
-
-            tweet_id, twitter_handle = get_tweet_id_and_handle_from_url(tweet_url)
-            date = search_day_str
-            username = twitter_handle
-
-            df = get_latest_tweets_from_handle(username, num_tweets, date)
-            try:
-                main_dict = df[df['id'] == tweet_id].to_dict("records")[0]
-            except:
-                main_dict = {}
-
-            tweet_df_list.append(main_dict)
+        tweet_df_list = []
+        for tweet_url in tweet_urls[:15]:
             
-    try:    
-        tweet_df = pd.DataFrame(tweet_df_list)
-        tweet_df = tweet_df.sort_values(by ='photos')
-    except:
-        tweet_df = pd.DataFrame()
+            search_dict = {'tweet_url': tweet_url}
 
+            query  = get_record_details(search_dict, collection, find_one=True)
+            
+            if query == None:
 
+                tweet_id, twitter_handle = get_tweet_id_and_handle_from_url(tweet_url)
+                date = search_day_str
+                username = twitter_handle
+
+                df = get_latest_tweets_from_handle(username, num_tweets, date)
+                try:
+                    main_dict = df[df['id'] == tweet_id].to_dict("records")[0]
+                except:
+                    main_dict = {}
+
+                tweet_df_list.append(main_dict)
+                
+        try:    
+            tweet_df = pd.DataFrame(tweet_df_list)
+            tweet_df = tweet_df.sort_values(by ='photos')
+        except:
+            tweet_df = pd.DataFrame()
+
+    except Exception as e:
+        print(e)
     return tweet_df
 
 def process_content_dict(tweet_df, topic):
 
-    content_bucket_name = "blovid-topics"
-    tweet_creator_bucket_name = "topic-users-details"
-    content_font_name = 'OpenSans-ExtraBold.ttf'
-    content_primary_colour = '#550afb'
-    content_secondary_colour = '#ffffff'
+    try:
+        content_bucket_name = "twitter_topics"
+        tweet_creator_bucket_name = "topic-users-details"
+        content_font_name = 'OpenSans-ExtraBold.ttf'
+        content_primary_colour = '#550afb'
+        content_secondary_colour = '#ffffff'
 
+            
+        for item in tweet_df.to_dict("records"):
         
-    for item in tweet_df.to_dict("records"):
-    
-        tweet_url = item['link']
-        collection = db[topic]
-        tweet = item['tweet']
-        twitter_handle = item['username']
-        
-        cleaned_tweet_text = cleanup_tweet(tweet, twitter_handle, num_reply=0)
+            tweet_url = item['link']
+            collection = db[topic]
+            tweet = item['tweet']
+            twitter_handle = item['username']
+            
+            cleaned_tweet_text = cleanup_tweet(tweet, twitter_handle, num_reply=0)
 
-        if len(tweet.split()) - len(cleaned_tweet_text.split()) < 7:
+            if len(tweet.split()) - len(cleaned_tweet_text.split()) < 7:
 
-            language = TextBlob(tweet)
-            language = language.detect_language()
-            if language == "en":
+                language = TextBlob(tweet)
+                language = language.detect_language()
+                if language == "en":
 
-                tweet_dict = {
-                    'tweet_text': cleaned_tweet_text,
-                            }
+                    tweet_dict = {
+                        'tweet_text': cleaned_tweet_text,
+                                }
 
-                content_details_dict = {
-                    'content_type': 'Single Tweet',
-                    'content_bucket_name': content_bucket_name,
-                    'tweet_creator_bucket_name': tweet_creator_bucket_name,
-                    'content_id': str(uuid.uuid4()),
-                    'creator_id' : twitter_handle, 
-                    'content_font_name': content_font_name, #standard
-                    'tweet_dict': tweet_dict, 
-                    'content_primary_colour': content_primary_colour, # standard
-                    'content_secondary_colour': content_secondary_colour, # standard
-                    'tweet_url': tweet_url,
-                    "topic_name": topic
-                }
-                
-                print(content_details_dict)
-                save_to_mongo_db(content_details_dict, collection)
-                notify_slack(content_details_dict, topic)
+                    content_details_dict = {
+                        'content_type': 'Single Tweet',
+                        'content_bucket_name': content_bucket_name,
+                        'tweet_creator_bucket_name': tweet_creator_bucket_name,
+                        'content_id': str(uuid.uuid4()),
+                        'creator_id' : twitter_handle, 
+                        'content_font_name': content_font_name, #standard
+                        'tweet_dict': tweet_dict, 
+                        'content_primary_colour': content_primary_colour, # standard
+                        'content_secondary_colour': content_secondary_colour, # standard
+                        'tweet_url': tweet_url,
+                        "topic_name": topic
+                    }
+                    
+                    print(content_details_dict)
+                    save_to_mongo_db(content_details_dict, collection)
+                    notify_slack(content_details_dict, topic)
 
+    except Exception as e:
+        print(e)
 
 
 
@@ -398,6 +420,8 @@ def notify_slack(data, topic):
 
 def process_topic():
     topic_url = "https://twitter.com/i/topics/849075881653846016"
+    # topic_url = "https://twitter.com/i/topics/1242158204751990788?s=12"
+
     driver = open_browser(topic_url)
     topic = get_topic_and_sub_topic(driver)
     tweet_urls = scroll_down_twitter(driver)
@@ -405,6 +429,7 @@ def process_topic():
     # process_tweet_urls(tweet_urls, topic)
     tweet_df = process_tweet_urls_v2(tweet_urls, topic)
     process_content_dict(tweet_df, topic)
+    driver.quit()
 
 
 process_topic()
