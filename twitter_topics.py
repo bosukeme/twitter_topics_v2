@@ -10,7 +10,7 @@ options=Options()
 options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
 options.add_argument('--disable-gpu')
-# options.add_argument('--headless')
+options.add_argument('--headless')
 options.add_experimental_option('excludeSwitches', ['enable-logging'])
 
 
@@ -28,18 +28,12 @@ import re, os
 from datetime import datetime, timedelta
 import twint
 from textblob import TextBlob
-import nest_asyncio
-nest_asyncio.apply()
-
-
-BASE_DIR = os.getcwd()
 
 search_day = datetime.now() - timedelta(21)
 search_day_str = datetime.strftime(search_day, '%Y-%m-%d')
 
-num_tweets = 500
+num_tweets = 700
 
-# from config.settings import MONGO_URL
 client = MongoClient(MONGO_URL)
 db = client.twitter_topics
 
@@ -51,10 +45,10 @@ def open_browser(topic_url):
         This starts the chrome browser and opens the url
     """
     ## windows
-    PATH = 'C://Users/hp/Desktop/Chrome Driver/chromedriver.exe'
+    # PATH = 'C://Users/hp/Desktop/Chrome Driver/chromedriver.exe'
 
     ## linux
-    # PATH = "/usr/lib/chromium-browser/chromedriver"
+    PATH = "/usr/lib/chromium-browser/chromedriver"
 
     try:
         driver = webdriver.Chrome(PATH, options=options)
@@ -332,7 +326,7 @@ def process_tweet_urls_v2(tweet_urls, topic):
 def process_content_dict(tweet_df, topic):
 
     try:
-        content_bucket_name = "twitter_topics"
+        content_bucket_name = "blovid-topics"
         tweet_creator_bucket_name = "topic-users-details"
         content_font_name = 'OpenSans-ExtraBold.ttf'
         content_primary_colour = '#550afb'
@@ -359,7 +353,7 @@ def process_content_dict(tweet_df, topic):
                                 }
 
                     content_details_dict = {
-                        'content_type': 'Single Tweet',
+                        'content_type': 'Topic Tweet',
                         'content_bucket_name': content_bucket_name,
                         'tweet_creator_bucket_name': tweet_creator_bucket_name,
                         'content_id': str(uuid.uuid4()),

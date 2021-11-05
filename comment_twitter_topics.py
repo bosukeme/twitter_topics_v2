@@ -222,10 +222,10 @@ def process_comment_content_dict(twitter_handle, tweet_id, tweet_url, comments_d
 
 
 
-def run_all():
+def process_topic_comment():
     topic_data = get_topics_from_db()
     search_date_str, cutoff_date_str = generate_cutoff_and_search_date(cut_off_h_diff, search_h_diff)
-    for topic_item in topic_data[:2]:
+    for topic_item in topic_data:
 
         tweet_url = topic_item['tweet_url']
         twitter_handle = tweet_url.split("/")[3]
@@ -286,4 +286,4 @@ def save_to_mongo_db(data, collection):
     print(f"we have {cur} entries")
 
         
-run_all()       
+process_topic_comment()       
