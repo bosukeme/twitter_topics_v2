@@ -4,7 +4,12 @@ import re
 import uuid
 from pymongo import MongoClient
 from textblob import TextBlob
-from Config.settings import MONGO_URL
+import sys
+import requests
+import json
+
+
+from Config.settings import MONGO_URL, SLACK_WEBHOOK
 
 client = MongoClient(MONGO_URL)
 db = client.twitter_topics
@@ -28,12 +33,14 @@ search_h_diff = 24
 
 
 def get_topics_from_db():
-    
-    cur = collection.find() 
-    
-    topic_data = list(collection.find({}, {"_id": 0, "topic_name":1, "tweet_url":1, "tweet_dict":1, "creator_id":1}))  
 
-    
+    try:
+        cur = collection.find() 
+        
+        topic_data = list(collection.find({}, {"_id": 0, "topic_name":1, "tweet_url":1, "tweet_dict":1, "creator_id":1}))  
+
+    except Exception as e:
+        print(e)    
     return topic_data
 
 
@@ -50,12 +57,16 @@ def generate_cutoff_and_search_date(cut_off_h_diff, search_h_diff):
 
 
 def get_twitter_handle_mentions(twitter_handle, search_date_str):
-    num_tweets = 10000
-    min_replies = 0
-    verified = False
-    search_term = '@%s' % twitter_handle
-    mentions_df = get_tweets_from_search_term(search_term, min_replies, verified, num_tweets, search_date_str)
+    try:
+        num_tweets = 10000
+        min_replies = 0
+        verified = False
+        search_term = '@%s' % twitter_handle
+        mentions_df = get_tweets_from_search_term(search_term, min_replies, verified, num_tweets, search_date_str)
+    except Exception as e:
+        print(e)
     return mentions_df
+
 
 
 def get_tweets_from_search_term(search_term, min_replies, verified, num_tweets, since_date_str):
@@ -238,9 +249,9 @@ def process_topic_comment():
 
             mentions_df = get_twitter_handle_mentions(twitter_handle, last_week_date)
             comments_df = mentions_df[mentions_df['conversation_id'] == tweet_id]
-            comments_df['is_english'] = comments_df['tweet'].apply(lambda row: TextBlob(row).detect_language())
+            # comments_df['is_english'] = comments_df['tweet'].apply(lambda row: TextBlob(row).detect_language())
 
-            comments_df = comments_df[comments_df['is_english'] == "en"]
+            comments_df = comments_df[comments_df['language'] == "en"]
 
             comments_df = comments_df.sort_values(['nlikes'],ascending=False)[0:5]
             comments_df = comments_df.reset_index(drop=True)
@@ -252,6 +263,7 @@ def process_topic_comment():
             
             content_details_dict = process_comment_content_dict(twitter_handle, tweet_id, tweet_url, comments_dict, tweet, topic_name)
             save_to_mongo_db(content_details_dict, commment_collection)
+            notify_slack(content_details_dict, topic_name)
 
             print(content_details_dict)
             
@@ -284,6 +296,41 @@ def save_to_mongo_db(data, collection):
     insert_records(collection, data)
     cur = collection.count_documents({})
     print(f"we have {cur} entries")
+
+
+def notify_slack(data, topic):
+    """
+        This sends the content_dict/ data to a slack channel
+    """
+
+    url =  SLACK_WEBHOOK
+    
+    message = (f'{data}')
+    title = (f"New Incoming Message : {topic} :zap:")
+    
+    slack_data = {
+        "username": f"COMMENTS - {topic}", #f'{topic}',
+        "attachments": [
+            {
+                "color":  "#9733EE",
+                "fields": [
+                    {
+                        "title": title,
+                        "value": message,
+                        "short": "false",
+                    }
+                ]
+            }
+        ]
+    }
+    byte_length = str(sys.getsizeof(slack_data))
+    headers = {'Content-Type': "application/json", 'Content-Length': byte_length}
+    response = requests.post(url, data=json.dumps(slack_data), headers=headers)
+    if response.status_code != 200:
+        raise Exception(response.status_code, response.text)
+        
+    return None
+
 
         
 process_topic_comment()       
