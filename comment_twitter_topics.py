@@ -306,7 +306,7 @@ def notify_slack(data, topic):
     url =  SLACK_WEBHOOK
     
     message = (f'{data}')
-    title = (f"New Incoming Message : {topic} :zap:")
+    title = (f"New Incoming Message : COMMENTS - {topic} :zap:")
     
     slack_data = {
         "username": f"COMMENTS - {topic}", #f'{topic}',
