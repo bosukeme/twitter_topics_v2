@@ -12,6 +12,8 @@ options.add_argument('--disable-dev-shm-usage')
 options.add_argument('--disable-gpu')
 options.add_argument('--headless')
 options.add_experimental_option('excludeSwitches', ['enable-logging'])
+options.add_argument("disable-infobars")
+options.add_argument("--remote-debugging-port=9222")
 
 
 from Config.settings import MONGO_URL, SLACK_WEBHOOK
@@ -233,7 +235,7 @@ def process_tweet_urls(tweet_urls, topic):
                                 }
 
                     content_details_dict = {
-                        'content_type': 'Single Tweet',
+                        'content_type': 'Topic Tweet',
                         'content_bucket_name': content_bucket_name,
                         'tweet_creator_bucket_name': main_dict['name'],
                         'content_id': str(uuid.uuid4()),
@@ -366,9 +368,10 @@ def process_content_dict(tweet_df, topic):
                         "topic_name": topic
                     }
                     
-                    print(content_details_dict)
+                    
                     save_to_mongo_db(content_details_dict, collection)
                     notify_slack(content_details_dict, topic)
+                    print(content_details_dict)
 
     except Exception as e:
         print(e)
