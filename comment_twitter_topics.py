@@ -37,7 +37,7 @@ def get_topics_from_db():
     try:
         cur = collection.find() 
         
-        topic_data = list(collection.find({}, {"_id": 0, "topic_name":1, "tweet_url":1, "tweet_dict":1, "creator_id":1}))  
+        topic_data = list(collection.find({}, {"_id": 0, "topic_name":1, "tweet_url":1, "tweet_dict":1, "tweet_image":1, "creator_id":1}))  
 
     except Exception as e:
         print(e)    
@@ -206,7 +206,7 @@ def comment_dict(comments_df, twitter_handle):
     return comments_dict
 
 
-def process_comment_content_dict(twitter_handle, tweet_id, tweet_url, comments_dict, tweet, topic_name):
+def process_comment_content_dict(twitter_handle, tweet_id, tweet_url, comments_dict, tweet, topic_name, tweet_image):
 
     content_font_name = 'OpenSans-ExtraBold.ttf'
     content_primary_colour = '#550afb'
@@ -220,6 +220,7 @@ def process_comment_content_dict(twitter_handle, tweet_id, tweet_url, comments_d
             'brand_id' : twitter_handle, # actually for the brand_id, we could just try to use the twitter handle as this would likely be unique... something to ponder
             'tweet_id' : tweet_id,
             "tweet" : tweet,
+            "tweet_image": tweet_image,
             "topic_name": topic_name,
             'content_font_name': content_font_name,
             'tweet_url' : tweet_url,
@@ -260,8 +261,9 @@ def process_topic_comment():
             
             tweet = topic_item['tweet_dict']
             topic_name = topic_item['topic_name']
-            
-            content_details_dict = process_comment_content_dict(twitter_handle, tweet_id, tweet_url, comments_dict, tweet, topic_name)
+            tweet_image = topic_item['tweet_image']
+
+            content_details_dict = process_comment_content_dict(twitter_handle, tweet_id, tweet_url, comments_dict, tweet, topic_name, tweet_image)
             save_to_mongo_db(content_details_dict, commment_collection)
             notify_slack(content_details_dict, topic_name)
 

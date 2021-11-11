@@ -220,7 +220,7 @@ def process_tweet_urls(tweet_urls, topic):
             except:
                 main_dict = {}
             
-            print(main_dict)
+    
             tweet = main_dict['tweet']
             cleaned_tweet_text = cleanup_tweet(tweet, twitter_handle, num_reply=0)
             
@@ -341,6 +341,7 @@ def process_content_dict(tweet_df, topic):
             collection = db[topic]
             tweet = item['tweet']
             twitter_handle = item['username']
+            tweet_image = item['photos']
             
             cleaned_tweet_text = cleanup_tweet(tweet, twitter_handle, num_reply=0)
 
@@ -362,6 +363,7 @@ def process_content_dict(tweet_df, topic):
                         'creator_id' : twitter_handle, 
                         'content_font_name': content_font_name, #standard
                         'tweet_dict': tweet_dict, 
+                        'tweet_image': tweet_image,
                         'content_primary_colour': content_primary_colour, # standard
                         'content_secondary_colour': content_secondary_colour, # standard
                         'tweet_url': tweet_url,
